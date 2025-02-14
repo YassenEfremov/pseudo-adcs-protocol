@@ -83,15 +83,15 @@ impl TEL {
     }
 
     pub fn get_x(&self) -> i16 {
-        (((self.x_h as u16) << 8) | (self.x_l as u16)) as i16
+        i16::from_be_bytes([self.x_h, self.x_l])
     }
 
     pub fn get_y(&self) -> i16 {
-        (((self.y_h as u16) << 8) | (self.y_l as u16)) as i16
+        i16::from_be_bytes([self.y_h, self.y_l])
     }
 
     pub fn get_z(&self) -> i16 {
-        (((self.z_h as u16) << 8) | (self.z_l as u16)) as i16
+        i16::from_be_bytes([self.z_h, self.z_l])
     }
 }
 
@@ -114,15 +114,15 @@ impl SAT {
     }
 
     pub fn get_x(&self) -> i16 {
-        (((self.x_h as u16) << 8) | (self.x_l as u16)) as i16
+        i16::from_be_bytes([self.x_h, self.x_l])
     }
 
     pub fn get_y(&self) -> i16 {
-        (((self.y_h as u16) << 8) | (self.y_l as u16)) as i16
+        i16::from_be_bytes([self.y_h, self.y_l])
     }
 
     pub fn get_z(&self) -> i16 {
-        (((self.z_h as u16) << 8) | (self.z_l as u16)) as i16
+        i16::from_be_bytes([self.z_h, self.z_l])
     }
 }
 
