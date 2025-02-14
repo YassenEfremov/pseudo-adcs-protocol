@@ -1,4 +1,4 @@
 #![no_std]
 
-pub mod data_format;
+pub mod message;
 pub mod commands;
