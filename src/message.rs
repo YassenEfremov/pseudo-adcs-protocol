@@ -27,7 +27,13 @@ use core::mem::size_of;
 //       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //       |  Y high bits  |  Y low bits   |
 //       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//       |  Y high bits  |  Z low bits   |
+//       |  Z high bits  |  Z low bits   |
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |X_acc high bits|X_acc low bits |
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |Y_acc high bits|Y_acc low bits |
+//       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//       |Z_acc high bits|Z_acc low bits |
 //       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
 //     0x02 SAT (Set ATtitude)
@@ -64,6 +70,12 @@ pub struct TEL {
     pub y_l: u8,
     pub z_h: u8,
     pub z_l: u8,
+    pub x_acc_h: u8,
+    pub x_acc_l: u8,
+    pub y_acc_h: u8,
+    pub y_acc_l: u8,
+    pub z_acc_h: u8,
+    pub z_acc_l: u8,
 }
 
 impl TEL {
@@ -71,7 +83,10 @@ impl TEL {
         Self {
             x_h: buf[0], x_l: buf[1],
             y_h: buf[2], y_l: buf[3],
-            z_h: buf[4], z_l: buf[5]
+            z_h: buf[4], z_l: buf[5],
+            x_acc_h: buf[6], x_acc_l: buf[7],
+            y_acc_h: buf[8], y_acc_l: buf[9],
+            z_acc_h: buf[10], z_acc_l: buf[11]
         }
     }
 
@@ -85,6 +100,18 @@ impl TEL {
 
     pub fn get_z(&self) -> i16 {
         i16::from_be_bytes([self.z_h, self.z_l])
+    }
+
+    pub fn get_x_acc(&self) -> i16 {
+        i16::from_be_bytes([self.x_acc_h, self.x_acc_l])
+    }
+
+    pub fn get_y_acc(&self) -> i16 {
+        i16::from_be_bytes([self.y_acc_h, self.y_acc_l])
+    }
+
+    pub fn get_z_acc(&self) -> i16 {
+        i16::from_be_bytes([self.z_acc_h, self.z_acc_l])
     }
 }
 
@@ -140,12 +167,6 @@ pub struct Message {
     sat_payload_buffer: [u8; size_of::<SAT>()],
     payload_tail: usize,
     pub payload: Option<MessagePayload>,
-    // pub x_h: u8,
-    // pub x_l: u8,
-    // pub y_h: u8,
-    // pub y_l: u8,
-    // pub z_h: u8,
-    // pub z_l: u8,
 }
 
 pub enum PushState {
@@ -160,8 +181,8 @@ impl Message {
             header_buffer: [0x00],
             header_tail: 0,
             payload_started: false,
-            tel_payload_buffer: [0x00; 6],
-            sat_payload_buffer: [0x00; 6],
+            tel_payload_buffer: [0x00; size_of::<TEL>()],
+            sat_payload_buffer: [0x00; size_of::<SAT>()],
             payload_tail: 0,
             payload: None
         }
@@ -199,7 +220,7 @@ impl Message {
                         PushState::Continue
                     }
                 } else {
-                    self.tel_payload_buffer = [0x00; 6];
+                    self.tel_payload_buffer = [0x00; size_of::<TEL>()];
                     self.payload_started = true;
                     PushState::Continue
                 }
@@ -225,7 +246,7 @@ impl Message {
                         PushState::Continue
                     }
                 } else {
-                    self.sat_payload_buffer = [0x00; 6];
+                    self.sat_payload_buffer = [0x00; size_of::<SAT>()];
                     self.payload_started = true;
                     PushState::Continue
                 }
@@ -338,31 +359,43 @@ mod tests {
     #[test]
     fn test_tel_from_fixed() {
         let tel = TEL::from_fixed(&[
+            0x01, 0x02,
+            0x03, 0x04,
+            0x05, 0x06,
             0x12, 0x34,
             0x56, 0x78,
-            0x9a, 0xbc
+            0x9a, 0xbc,
         ]);
-        assert_eq!(tel.x_h, 0x12);
-        assert_eq!(tel.x_l, 0x34);
-        assert_eq!(tel.y_h, 0x56);
-        assert_eq!(tel.y_l, 0x78);
-        assert_eq!(tel.z_h, 0x9a);
-        assert_eq!(tel.z_l, 0xbc);
+        assert_eq!(tel.x_h, 0x01);
+        assert_eq!(tel.x_l, 0x02);
+        assert_eq!(tel.y_h, 0x03);
+        assert_eq!(tel.y_l, 0x04);
+        assert_eq!(tel.z_h, 0x05);
+        assert_eq!(tel.z_l, 0x06);
+        assert_eq!(tel.x_acc_h, 0x12);
+        assert_eq!(tel.x_acc_l, 0x34);
+        assert_eq!(tel.y_acc_h, 0x56);
+        assert_eq!(tel.y_acc_l, 0x78);
+        assert_eq!(tel.z_acc_h, 0x9a);
+        assert_eq!(tel.z_acc_l, 0xbc);
     }
 
     #[test]
     fn test_tel_get_xyz() {
         let tel = TEL {
-            x_h: 0x12,
-            x_l: 0x34,
-            y_h: 0x56,
-            y_l: 0x78,
-            z_h: 0x9a,
-            z_l: 0xbc
+            x_h: 0x01, x_l: 0x02,
+            y_h: 0x03, y_l: 0x04,
+            z_h: 0x05, z_l: 0x06,
+            x_acc_h: 0x12, x_acc_l: 0x34,
+            y_acc_h: 0x56, y_acc_l: 0x78,
+            z_acc_h: 0x9a, z_acc_l: 0xbc
         };
-        assert_eq!(tel.get_x(), 0x1234);
-        assert_eq!(tel.get_y(), 0x5678);
-        assert_eq!(tel.get_z(), 0x9abcu16 as i16);
+        assert_eq!(tel.get_x(), 0x0102);
+        assert_eq!(tel.get_y(), 0x0304);
+        assert_eq!(tel.get_z(), 0x0506);
+        assert_eq!(tel.get_x_acc(), 0x1234);
+        assert_eq!(tel.get_y_acc(), 0x5678);
+        assert_eq!(tel.get_z_acc(), 0x9abcu16 as i16);
     }
 
     #[test]
@@ -383,12 +416,9 @@ mod tests {
     #[test]
     fn test_sat_get_xyz() {
         let sat = SAT {
-            x_h: 0x12,
-            x_l: 0x34,
-            y_h: 0x56,
-            y_l: 0x78,
-            z_h: 0x9a,
-            z_l: 0xbc
+            x_h: 0x12, x_l: 0x34,
+            y_h: 0x56, y_l: 0x78,
+            z_h: 0x9a, z_l: 0xbc
         };
         assert_eq!(sat.get_x(), 0x1234);
         assert_eq!(sat.get_y(), 0x5678);
@@ -401,8 +431,8 @@ mod tests {
         assert_eq!(message.header_buffer, [0x00; 1]);
         assert_eq!(message.header_tail, 0);
         assert_eq!(message.payload_started, false);
-        assert_eq!(message.tel_payload_buffer, [0x00; 6]);
-        assert_eq!(message.sat_payload_buffer, [0x00; 6]);
+        assert_eq!(message.tel_payload_buffer, [0x00; size_of::<TEL>()]);
+        assert_eq!(message.sat_payload_buffer, [0x00; size_of::<SAT>()]);
         assert_eq!(message.payload_tail, 0);
         assert!(matches!(message.payload, None));
     }
@@ -411,16 +441,25 @@ mod tests {
     fn test_push_byte_tel() {
         let mut message = Message::new();
         assert!(matches!(message.push_byte(0x01), PushState::Continue)); // TEL
-        assert!(matches!(message.push_byte(0x12), PushState::Continue)); // x_h
-        assert!(matches!(message.push_byte(0x34), PushState::Continue)); // x_l
-        assert!(matches!(message.push_byte(0x56), PushState::Continue)); // y_h
-        assert!(matches!(message.push_byte(0x78), PushState::Continue)); // y_l
-        assert!(matches!(message.push_byte(0x9a), PushState::Continue)); // z_h
-        assert!(matches!(message.push_byte(0xbc), PushState::Done));     // z_l
+        assert!(matches!(message.push_byte(0x01), PushState::Continue)); // x_h
+        assert!(matches!(message.push_byte(0x02), PushState::Continue)); // x_l
+        assert!(matches!(message.push_byte(0x03), PushState::Continue)); // y_h
+        assert!(matches!(message.push_byte(0x04), PushState::Continue)); // y_l
+        assert!(matches!(message.push_byte(0x05), PushState::Continue)); // z_h
+        assert!(matches!(message.push_byte(0x06), PushState::Continue)); // z_l
+        assert!(matches!(message.push_byte(0x12), PushState::Continue)); // x_acc_h
+        assert!(matches!(message.push_byte(0x34), PushState::Continue)); // x_acc_l
+        assert!(matches!(message.push_byte(0x56), PushState::Continue)); // y_acc_h
+        assert!(matches!(message.push_byte(0x78), PushState::Continue)); // y_acc_l
+        assert!(matches!(message.push_byte(0x9a), PushState::Continue)); // z_acc_h
+        assert!(matches!(message.push_byte(0xbc), PushState::Done));     // z_acc_l
         assert!(matches!(message.payload, Some(MessagePayload::TEL(TEL {
-            x_h: 0x12, x_l: 0x34,
-            y_h: 0x56, y_l: 0x78,
-            z_h: 0x9a, z_l: 0xbc
+            x_h: 0x01, x_l: 0x02,
+            y_h: 0x03, y_l: 0x04,
+            z_h: 0x05, z_l: 0x06,
+            x_acc_h: 0x12, x_acc_l: 0x34,
+            y_acc_h: 0x56, y_acc_l: 0x78,
+            z_acc_h: 0x9a, z_acc_l: 0xbc
         }))));
     }
 
