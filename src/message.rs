@@ -30,7 +30,7 @@ use core::mem::size_of;
 //       |  Y high bits  |  Z low bits   |
 //       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
-//     0x02 SAT (Set Attitude)
+//     0x02 SAT (Set ATtitude)
 //       A message requesting new attitude of the device.
 //       The desktop software sends this type of message.
 //       Payload sent after the header:
@@ -137,7 +137,7 @@ pub struct Message {
     header_tail: usize,
     payload_started: bool,
     tel_payload_buffer: [u8; size_of::<TEL>()],
-    sat_payload_buffer: [u8; size_of::<TEL>()],
+    sat_payload_buffer: [u8; size_of::<SAT>()],
     payload_tail: usize,
     pub payload: Option<MessagePayload>,
     // pub x_h: u8,
